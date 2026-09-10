@@ -183,7 +183,9 @@ function parseArgs(argv) {
       case "--model": opts.model = next(); flagged.add("model"); break;
       case "--permission-mode": opts.permissionMode = next(); flagged.add("permissionMode"); break;
       case "--read-only": opts.autonomy = "read-only"; flagged.add("autonomy"); flagged.add("readOnly"); break;
-      case "--full-access": opts.autonomy = "full-access"; flagged.add("autonomy"); break;
+      // permissionMode is flagged too: an explicit --full-access must override a lane's
+      // permissionMode dial the same way --read-only does, not conflict with it.
+      case "--full-access": opts.autonomy = "full-access"; flagged.add("autonomy"); flagged.add("permissionMode"); break;
       case "--resume-last": opts.resumeLast = true; break;
       case "--session": opts.session = next(); break;
       case "--timeout": opts.timeout = next(); flagged.add("timeout"); break;
@@ -867,7 +869,9 @@ function dispatchToDevin(opts, run, writeResult) {
         // the child may flush files during the grace window; refresh the snapshot so the
         // artifact matches the tree the orchestrator will actually find
         const touchedAfterGrace = gitTouchedFiles(opts.cd);
-        writeResult({ ...abortedFields, sessionId: resolvedSessionId(), touchedFiles: touchedAfterGrace, ...readOnlyFlag() });
+        // Re-assemble the report: stdout flushed during the grace window must reach
+        // the final write — with no event stream, this is the only copy.
+        writeResult({ ...abortedFields, sessionId: resolvedSessionId(), finalMessage: assembleFinal(), touchedFiles: touchedAfterGrace, ...readOnlyFlag() });
         process.exit(result.exitCode);
       }, 2000);
     });
