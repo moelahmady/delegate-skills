@@ -5,7 +5,7 @@ using System.Threading;
 class FakeCli {
   static int Main(string[] args) {
     // Mirrors the .cjs fake: any probe form, and hang/fail selected by the mode's suffix,
-    // so a native-binary relay (agy, kimi, qoder, vibe, aider, oz, omp) enters the same preflight matrix.
+    // so a native-binary relay (agy, kimi, qoder, vibe, aider, oz, omp, devin) enters the same preflight matrix.
     var mode = Environment.GetEnvironmentVariable("SMOKE_MODE") ?? "";
     bool versionProbe = Array.IndexOf(args, "--version") >= 0
       || (args.Length > 0 && (args[0] == "version" || args[0] == "changelog"));
@@ -98,6 +98,16 @@ class FakeCli {
         Console.WriteLine("{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"fake omp completed\"}],\"provider\":\"google\",\"model\":\"fake-model\",\"usage\":{\"input\":7,\"output\":2},\"stopReason\":\"stop\"}}");
       }
       Console.WriteLine("{\"type\":\"agent_end\",\"messages\":[]}");
+      return 0;
+    }
+    if (mode == "devin-success") {
+      var argsFile = Environment.GetEnvironmentVariable("SMOKE_ARGS_FILE");
+      if (!String.IsNullOrEmpty(argsFile)) File.WriteAllLines(argsFile, args);
+      var exportAt = Array.IndexOf(args, "--export");
+      if (exportAt >= 0 && exportAt + 1 < args.Length) {
+        File.WriteAllText(args[exportAt + 1], "{\"schema_version\":\"ATIF-v1.7\",\"session_id\":\"devin-session-1\",\"agent\":{\"name\":\"devin\",\"version\":\"0.0.0-smoke\",\"model_name\":\"fake-model\"},\"steps\":[],\"final_metrics\":{}}");
+      }
+      Console.WriteLine("fake devin completed");
       return 0;
     }
     var psi = new ProcessStartInfo {
