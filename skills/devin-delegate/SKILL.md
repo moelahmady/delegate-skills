@@ -146,6 +146,12 @@ broken headlessly (edit/write still prompt; `--print` rejects them). Do not add 
 `--respect-workspace-trust false` so a dispatch against a throwaway or newly cloned repo is not
 blocked by that gate.
 
+The child environment removes only inherited `WINDSURF_API_KEY`. Windsurf terminals inject that
+variable; Devin's ACP agent prefers it over the stored `devin auth` login and then fails with
+`failed to start ACP agent session`. Every other entry is preserved, and version preflight uses
+the same environment. A user who deliberately sets `WINDSURF_API_KEY` for Devin has it ignored by
+the relay and should use `devin auth login` instead.
+
 **`--read-only` is enforced at Devin's tool boundary**, unlike grok's advisory plan mode: headless
 `normal` rejects writes and exec. The relay still reports `readOnlyViolation` from git porcelain plus
 fingerprints of already-dirty Git-visible paths — `true` when either signal proves a change, `false`

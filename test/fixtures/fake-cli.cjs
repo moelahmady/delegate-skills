@@ -19,6 +19,12 @@ const versionProbe = args.includes("--version") || args[0] === "version" || args
 if (versionProbe && process.env.SMOKE_PREFLIGHT_ENV_FILE) {
   fs.writeFileSync(process.env.SMOKE_PREFLIGHT_ENV_FILE, JSON.stringify(capturedEnv()));
 }
+if (versionProbe && process.env.SMOKE_DEVIN_PREFLIGHT_ENV_FILE) {
+  fs.writeFileSync(process.env.SMOKE_DEVIN_PREFLIGHT_ENV_FILE, JSON.stringify({
+    windsurfApiKey: process.env.WINDSURF_API_KEY ?? null,
+    smokeSecretToken: process.env.SMOKE_SECRET_TOKEN ?? null,
+  }));
+}
 if (versionProbe && process.env.SMOKE_PREFLIGHT_PID_FILE) {
   fs.writeFileSync(process.env.SMOKE_PREFLIGHT_PID_FILE, String(process.pid));
 }
@@ -212,6 +218,12 @@ if (process.env.SMOKE_MODE === "grok-read-only") {
 }
 if (process.env.SMOKE_MODE === "devin-success") {
   if (process.env.SMOKE_ARGS_FILE) fs.writeFileSync(process.env.SMOKE_ARGS_FILE, JSON.stringify(args));
+  if (process.env.SMOKE_CAPTURE_FILE) {
+    fs.writeFileSync(process.env.SMOKE_CAPTURE_FILE, JSON.stringify({
+      windsurfApiKey: process.env.WINDSURF_API_KEY ?? null,
+      smokeSecretToken: process.env.SMOKE_SECRET_TOKEN ?? null,
+    }));
+  }
   const exportAt = args.indexOf("--export");
   if (exportAt !== -1 && args[exportAt + 1]) {
     fs.writeFileSync(args[exportAt + 1], JSON.stringify({

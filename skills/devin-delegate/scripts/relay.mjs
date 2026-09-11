@@ -38,6 +38,11 @@
  * refuses untrusted workspaces; the relay always passes
  * `--respect-workspace-trust false`.
  *
+ * The child environment removes only inherited WINDSURF_API_KEY (injected by
+ * Windsurf terminals; Devin's ACP agent prefers it over the stored `devin auth`
+ * login and fails with `failed to start ACP agent session`). Every other entry
+ * is preserved. Version preflight uses the same environment.
+ *
  * The brief is handed to Devin via `--prompt-file`, never argv and never as a
  * positional: bare positionals are `[PATH]...` and conflict with `--print`'s
  * optional PROMPT arg. `--prompt-file` keeps the brief out of the host process
@@ -315,6 +320,18 @@ function versionProbeTimeout(opts) {
   return timeoutMs === null ? VERSION_PROBE_TIMEOUT_MS : Math.min(timeoutMs, VERSION_PROBE_TIMEOUT_MS);
 }
 
+function childEnvironment() {
+  const env = { ...process.env };
+  if (process.platform === "win32") {
+    for (const key of Object.keys(env)) {
+      if (key.toUpperCase() === "WINDSURF_API_KEY") delete env[key];
+    }
+  } else {
+    delete env.WINDSURF_API_KEY;
+  }
+  return env;
+}
+
 function devinVersion(probeTimeoutMs) {
   // Native binary on every documented platform (macOS/Linux; Windows native is unverified
   // and docs route it through WSL). Launch without a shell: there is no `.cmd` shim to
@@ -325,6 +342,7 @@ function devinVersion(probeTimeoutMs) {
         encoding: "utf8",
         timeout,
         killSignal: "SIGKILL",
+        env: childEnvironment(),
       }).trim();
       return { version: version || "unknown", error: null };
     } catch (error) {
@@ -767,7 +785,7 @@ function dispatchToDevin(opts, run, writeResult) {
   // Native binary: no shell. The brief is delivered via --prompt-file (never argv).
   const child = spawn("devin", argv, {
     cwd: opts.cd,
-    env: { ...process.env },
+    env: childEnvironment(),
     stdio: ["ignore", "pipe", "pipe"],
     detached: process.platform !== "win32", // POSIX: lead a new process group so killChild can fell the whole tree
   });

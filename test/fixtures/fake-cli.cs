@@ -9,6 +9,10 @@ class FakeCli {
     var mode = Environment.GetEnvironmentVariable("SMOKE_MODE") ?? "";
     bool versionProbe = Array.IndexOf(args, "--version") >= 0
       || (args.Length > 0 && (args[0] == "version" || args[0] == "changelog"));
+    if (versionProbe) {
+      var preflightEnvFile = Environment.GetEnvironmentVariable("SMOKE_DEVIN_PREFLIGHT_ENV_FILE");
+      if (!String.IsNullOrEmpty(preflightEnvFile)) File.WriteAllText(preflightEnvFile, DevinEnvCapture());
+    }
     if (versionProbe && mode.EndsWith("-version-hang")) {
       Thread.Sleep(Timeout.Infinite);
       return 1;
@@ -103,6 +107,8 @@ class FakeCli {
     if (mode == "devin-success") {
       var argsFile = Environment.GetEnvironmentVariable("SMOKE_ARGS_FILE");
       if (!String.IsNullOrEmpty(argsFile)) File.WriteAllLines(argsFile, args);
+      var captureFile = Environment.GetEnvironmentVariable("SMOKE_CAPTURE_FILE");
+      if (!String.IsNullOrEmpty(captureFile)) File.WriteAllText(captureFile, DevinEnvCapture());
       var exportAt = Array.IndexOf(args, "--export");
       if (exportAt >= 0 && exportAt + 1 < args.Length) {
         File.WriteAllText(args[exportAt + 1], "{\"schema_version\":\"ATIF-v1.7\",\"session_id\":\"devin-session-1\",\"agent\":{\"name\":\"devin\",\"version\":\"0.0.0-smoke\",\"model_name\":\"fake-model\"},\"steps\":[],\"final_metrics\":{}}");
@@ -120,6 +126,12 @@ class FakeCli {
     File.WriteAllText(Environment.GetEnvironmentVariable("SMOKE_PID_FILE"), Process.GetCurrentProcess().Id.ToString());
     Thread.Sleep(Timeout.Infinite);
     return 0;
+  }
+  static string DevinEnvCapture() {
+    var windsurf = Environment.GetEnvironmentVariable("WINDSURF_API_KEY");
+    var sentinel = Environment.GetEnvironmentVariable("SMOKE_SECRET_TOKEN");
+    return "{\"windsurfApiKey\":" + (windsurf == null ? "null" : JsonString(windsurf))
+      + ",\"smokeSecretToken\":" + (sentinel == null ? "null" : JsonString(sentinel)) + "}";
   }
   static string JsonString(string s) {
     if (s == null) s = "";

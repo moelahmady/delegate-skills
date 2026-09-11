@@ -20,6 +20,11 @@ devin auth status     # expect: Logged in (via Devin).
 List available models with `devin models list` (JSON is `devin models list --format json`). `--model`
 accepts fuzzy names and aliases (e.g. `opus`).
 
+The relay strips inherited `WINDSURF_API_KEY` from the child environment (Windsurf terminals inject
+it; Devin's ACP agent prefers it over the stored `devin auth` login and then fails). Running `devin`
+by hand from a Windsurf terminal needs `unset WINDSURF_API_KEY` (or
+`env -u WINDSURF_API_KEY devin ...`).
+
 ## Dispatching
 
 ```bash
@@ -120,11 +125,12 @@ process has exited and `result.json` is written — not when a status line says 
   or a supervisor timeout, not an implementer error. Free up host memory or split the task into
   smaller briefs, then re-dispatch.
 - **`status: failed`:** read `result.json`'s `stderrTail` and `stderr.txt` for the cause.
-  Common causes: an auth lapse (`devin auth status`), an untrusted workspace (the relay already
-  passes `--respect-workspace-trust false`), an invalid `--model`, or a permission-mode rejection
-  (look for `rejected a tool call that requires confirmation` — that run needed `smart` or
-  `dangerous`, not `accept-edits`). Fix the cause and re-dispatch; don't paper over it by doing the
-  work yourself unless that's what the user wants.
+  Common causes: an auth lapse (`devin auth status`), `failed to start ACP agent session` from an
+  inherited `WINDSURF_API_KEY` when Devin is launched outside the relay, an untrusted workspace
+  (the relay already passes `--respect-workspace-trust false`), an invalid `--model`, or a
+  permission-mode rejection (look for `rejected a tool call that requires confirmation` — that run
+  needed `smart` or `dangerous`, not `accept-edits`). Fix the cause and re-dispatch; don't paper
+  over it by doing the work yourself unless that's what the user wants.
 - **Empty `finalMessage`:** Devin exited before printing a final response. Treat as a failed run;
   `stderr.txt` usually shows where it stopped.
 - **`sessionId` is `null`:** `--print` does not print a session id on stdout. The relay always

@@ -14,6 +14,8 @@ export async function runDevin(h) {
 
   const outDir = join(h.scratch, "out-success-devin");
   const argsFile = join(h.scratch, "args-success-devin");
+  const captureFile = join(h.scratch, "capture-success-devin.json");
+  const preflightEnvFile = join(h.scratch, "preflight-env-success-devin.json");
   const run = spawnSync(process.execPath, [
     h.relayPath("devin"),
     "--brief", h.briefPath,
@@ -21,7 +23,15 @@ export async function runDevin(h) {
     "--out-dir", outDir,
     "--model", "opus",
   ], {
-    env: { ...h.baseEnv, SMOKE_MODE: "devin-success", SMOKE_ARGS_FILE: argsFile },
+    env: {
+      ...h.baseEnv,
+      SMOKE_MODE: "devin-success",
+      SMOKE_ARGS_FILE: argsFile,
+      SMOKE_CAPTURE_FILE: captureFile,
+      SMOKE_DEVIN_PREFLIGHT_ENV_FILE: preflightEnvFile,
+      WINDSURF_API_KEY: "bogus-windsurf-key",
+      SMOKE_SECRET_TOKEN: "must-survive",
+    },
     encoding: "utf8",
   });
   const args = readArgs(argsFile, h.WIN);
@@ -54,6 +64,18 @@ export async function runDevin(h) {
       && value.exportPath
       && existsSync(value.exportPath)
       && !existsSync(join(outDir, "events.jsonl")));
+  }
+  h.check("devin success: fake captured the child environment", existsSync(captureFile));
+  if (existsSync(captureFile)) {
+    const capture = JSON.parse(readFileSync(captureFile, "utf8"));
+    h.check("devin success: inherited WINDSURF_API_KEY removed", capture.windsurfApiKey === null);
+    h.check("devin success: unrelated environment entries preserved", capture.smokeSecretToken === "must-survive");
+  }
+  h.check("devin success: fake captured the preflight environment", existsSync(preflightEnvFile));
+  if (existsSync(preflightEnvFile)) {
+    const preflight = JSON.parse(readFileSync(preflightEnvFile, "utf8"));
+    h.check("devin success: preflight WINDSURF_API_KEY removed", preflight.windsurfApiKey === null);
+    h.check("devin success: preflight sentinel preserved", preflight.smokeSecretToken === "must-survive");
   }
 
   const readOnlyOutDir = join(h.scratch, "out-readonly-devin");
